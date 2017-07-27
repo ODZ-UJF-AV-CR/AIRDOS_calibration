@@ -1,7 +1,13 @@
 /*
   CANDY based on Mighty 1284p
  
-Compiled fith: https://github.com/MCUdude/MightyCore.git
+Compiled with: https://github.com/MCUdude/MightyCore.git
+
+ISP
+---
+PD0     RX
+PD1     TX
+RESET#  through 50M capacitor to DTR#
 
 SDcard
 ------
@@ -64,7 +70,7 @@ TX1/INT1 (D 11) PD3 17|        |24 PC2 (D 18) TCK
                       +--------+
 */
 
-#include <SD.h>
+#include <SD.h>               // Tested version 1.0.6
 #include "wiring_private.h"
 #include <SoftwareSerial.h>
 
@@ -126,7 +132,7 @@ void setup()
 //	14	|	A14			|	A9			|	1x
 //	15	|	A15			|	A9			|	1x
   #define pin 0
-  uint8_t analog_reference = INTERNAL1V1; // DEFAULT, INTERNAL, INTERNAL1V1, INTERNAL2V56, or EXTERNAL
+  uint8_t analog_reference = EXTERNAL; // DEFAULT, INTERNAL, INTERNAL1V1, INTERNAL2V56, or EXTERNAL
 
   ADMUX = (analog_reference << 6) | ((pin | 0x10) & 0x1F);
 
@@ -211,7 +217,7 @@ void loop()
         sensor -= 1023 ;
       }
       
-      sensor += 20; // Add offset to ground (for 0 resistors)
+      //!!! sensor += 20; // Add offset to ground (for 0 resistors)
       
       if ((sensor>=0)&&(buffer[sensor]<65535)&&(oldValue<sensor)) buffer[sensor]++;
       oldValue = sensor;
@@ -270,7 +276,8 @@ void loop()
       if (dataFile) 
       {
         dataFile.println(dataString);  // write to SDcard
-        //swSerial.println(dataString);  // print to terminal
+        //!!!
+        swSerial.println(dataString);  // print to terminal
         
         digitalWrite(LED, LOW);  // Blink for Dasa
         delay(10);
