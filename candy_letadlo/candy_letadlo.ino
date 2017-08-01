@@ -7,7 +7,7 @@ ISP
 ---
 PD0     RX
 PD1     TX
-RESET#  through 50M capacitor to DTR#
+RESET#  through 50M capacitor to RST#
 
 SDcard
 ------
@@ -34,8 +34,8 @@ RELE_OFF  12    PD4
 
 LED
 ---
-LED  23  PC7  // LED pro Dasu
-// LED pro pilota = Timepulse LED
+LED_yellow  23  PC7         // LED pro Dasu
+LED_green   TIMEPULSE GPS   // LED pro pilota
 
 The following needs to be added to the line mentioning the atmega644 in
 /usr/share/arduino/libraries/SD/utility/Sd2PinMap.h:
@@ -76,9 +76,9 @@ TX1/INT1 (D 11) PD3 17|        |24 PC2 (D 18) TCK
 
 #define MSG_NO 20    // number of logged NMEA messages
 
-#define RELE_ON   11    // PD3
-#define RELE_OFF  12    // PD4
-#define LED       23    // PC7
+#define RELE_ON     11    // PD3
+#define RELE_OFF    12    // PD4
+#define LED_yellow  23    // PC7
 
 SoftwareSerial swSerial(18, 19); // RX, TX
 
@@ -139,8 +139,8 @@ void setup()
   pinMode(RESET, OUTPUT);     
   pinMode(RELE_ON, OUTPUT);
   pinMode(RELE_OFF, OUTPUT);
-  pinMode(LED, OUTPUT);
-  digitalWrite(LED, HIGH);  
+  pinMode(LED_yellow, OUTPUT);
+  digitalWrite(LED_yellow, HIGH);  
   
   digitalWrite(RELE_ON, LOW);  // Rele switch OFF
   digitalWrite(RELE_OFF, HIGH);  
@@ -157,7 +157,7 @@ void loop()
   for(int x=0; x<MEASUREMENTS; x++)  
   {
     uint8_t lo, hi;
-    int sensor;
+    uint16_t sensor;
     uint16_t buffer[1024];
     
     for(int n=0; n<1024; n++)
@@ -190,7 +190,7 @@ void loop()
     digitalWrite(RESET, HIGH);   // Reset peak detector
     digitalWrite(RESET, HIGH);   // Reset peak detector
     for (int i=0; i<20; i++) {digitalWrite(RESET, LOW);} // compensate first data aquisition cca 100 us
-    for(int n=0; n<18200; n++) // cca 13 s
+    for(int n=0; n<18200; n++) // cca 12 s
     {
       for (int i=0; i<100; i++) {digitalWrite(RESET, LOW);} // integration cca 500 us
       // start the conversion
@@ -207,20 +207,24 @@ void loop()
       // as ADCL and ADCH would be locked when it completed.
       lo = ADCL;
       hi = ADCH;
-      
+
       // combine the two bytes
       sensor = (hi << 8) | lo;
     
       // arrange integer value (read ATMega 2560 Datashet p.288) figure 26-15
-      if (sensor > 511 )
+      //if (sensor > 511 ) sensor -= 1023;
+      //!!! sensor += 20; // Add offset to ground (for bias current)
+
+      if (sensor < 512 ) 
       {
-        sensor -= 1023 ;
+        if ((buffer[sensor]<65535)&&(sensor>oldValue)) buffer[sensor]++;
+        oldValue = sensor;
       }
-      
-      //!!! sensor += 20; // Add offset to ground (for 0 resistors)
-      
-      if ((sensor>=0)&&(buffer[sensor]<65535)&&(oldValue<sensor)) buffer[sensor]++;
-      oldValue = sensor;
+      else
+      {
+        oldValue = 0; // 0 means noise
+      }
+      // Omite negative values, protect owerflow and suppress low slow faling edge
     }
     
   
@@ -232,41 +236,31 @@ void loop()
       dataString += String(count); 
       dataString += ",";
     
-      for(int n=0; n<(511+31); n++)
+      for(int n=1; n<(512); n++)  // There is only noise in channel 0
       {
         dataString += String(buffer[n]); 
         dataString += ",";
       }
-    
-      int noise = 0;
-      for(int n=0; n<(511+31); n++)
-      {
-        if(buffer[n]==0)
-        {
-          noise = n;
-          break;
-        }
-      }
-      
-      int flux=0;
-      for(int n=noise; n<(511+31); n++)
-      {
-        flux += buffer[n];
-      }
-    
+
+      #define NOISE 4
+      #define BACKGROUND 7
+        
       int loDose = 0;
-      if (noise > 0) loDose=buffer[noise-1];
+      for(int n=NOISE; n<(NOISE+BACKGROUND); n++)
+      {
+        loDose += buffer[n];
+      }
     
       int hiDose=0;
-      for(int n=noise+7; n<(511+31); n++)
+      for(int n=(NOISE+BACKGROUND); n<512 ; n++)
       {
         hiDose += buffer[n];
       }
       
-      toMonitor += String(count++) + "," + String(noise) + "," + String(flux) + "," + String(loDose) + "," + String(hiDose) + "*";
+      toMonitor += String(count++) + "," + String(loDose+hiDose) + "," + String(loDose) + "," + String(hiDose) + "*";
       swSerial.println(toMonitor);
       
-      dataString += String(noise) + "," + String(flux) + "," + String(loDose) + "," + String(hiDose);
+      dataString += String(loDose+hiDose) + "," + String(loDose) + "," + String(hiDose);
     
       // open the file. note that only one file can be open at a time,
       // so you have to close this one before opening another.
@@ -279,15 +273,15 @@ void loop()
         //!!!
         swSerial.println(dataString);  // print to terminal
         
-        digitalWrite(LED, LOW);  // Blink for Dasa
+        digitalWrite(LED_yellow, LOW);  // Blink for Dasa
         delay(10);
-        digitalWrite(LED, HIGH);  
+        digitalWrite(LED_yellow, HIGH);  
         if (hiDose >0)
         {
           delay(100);
-          digitalWrite(LED, LOW);  // Blink for Dasa + zaric
+          digitalWrite(LED_yellow, LOW);  // Blink for Dasa + zaric
           delay(10);
-          digitalWrite(LED, HIGH);  
+          digitalWrite(LED_yellow, HIGH);  
         }
         
         dataFile.close();
