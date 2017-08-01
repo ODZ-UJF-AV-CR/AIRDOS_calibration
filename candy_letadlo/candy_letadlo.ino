@@ -270,8 +270,7 @@ void loop()
       if (dataFile) 
       {
         dataFile.println(dataString);  // write to SDcard
-        //!!!
-        swSerial.println(dataString);  // print to terminal
+        //!!!swSerial.println(dataString);  // print to terminal
         
         digitalWrite(LED_yellow, LOW);  // Blink for Dasa
         delay(10);
