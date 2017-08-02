@@ -212,10 +212,10 @@ void loop()
       sensor = (hi << 8) | lo;
     
       // arrange integer value (read ATMega 2560 Datashet p.288) figure 26-15
-      //if (sensor > 511 ) sensor -= 1023;
-      //!!! sensor += 20; // Add offset to ground (for bias current)
+      if (sensor > 511 ) sensor -= 1023;
+      sensor += 2; // Compensate offset of amplifier
 
-      if (sensor < 512 ) 
+      if (sensor >= 0) 
       {
         if ((buffer[sensor]<65535)&&(sensor>oldValue)) buffer[sensor]++;
         oldValue = sensor;
