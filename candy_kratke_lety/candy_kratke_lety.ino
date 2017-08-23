@@ -1,5 +1,10 @@
 /*
   CANDY based on Mighty 1284p
+
+
+*************************** Verze na cestu na Azory **************************************
+
+
  
 Compiled with: https://github.com/MCUdude/MightyCore.git
 
@@ -74,7 +79,7 @@ TX1/INT1 (D 11) PD3 17|        |24 PC2 (D 18) TCK
 #include "wiring_private.h"
 #include <SoftwareSerial.h>
 
-#define MSG_NO 12    // number of logged NMEA messages
+#define MSG_NO 20    // number of logged NMEA messages
 
 #define RELE_ON     11    // PD3
 #define RELE_OFF    12    // PD4
@@ -150,7 +155,7 @@ void setup()
 
 int oldValue = 0;  // Variable for filtering death time double detection
 
-#define MEASUREMENTS  1   // cca 5 minutes of radiation measurement
+#define MEASUREMENTS  25   // cca 5 minutes of radiation measurement
 
 void loop()
 {
@@ -164,9 +169,8 @@ void loop()
     {
       buffer[n]=0;
     }
-
-    //!!!! upraveno pro kratke lety
-    if (x == (MEASUREMENTS+2))    // cca 26 s delay for GPS fix (cca 2 measurements)
+    
+    if (x == (MEASUREMENTS-2))    // cca 26 s delay for GPS fix (cca 2 measurements)
     {
       digitalWrite(RELE_OFF, LOW);  // Rele switch ON
       digitalWrite(RELE_ON, HIGH);  
@@ -197,6 +201,12 @@ void loop()
       // start the conversion
       sbi(ADCSRA, ADSC);           // Sample/Hold
       digitalWrite(RESET, LOW); 
+      digitalWrite(RESET, LOW); 
+      digitalWrite(RESET, LOW); 
+      digitalWrite(RESET, LOW); 
+      digitalWrite(RESET, LOW); 
+      digitalWrite(RESET, LOW); 
+      digitalWrite(RESET, LOW); 
       digitalWrite(RESET, HIGH);   // Reset peak detector (start next measurement)
       digitalWrite(RESET, LOW); 
       // ADSC is cleared when the conversion finishes
@@ -213,12 +223,13 @@ void loop()
       sensor = (hi << 8) | lo;
     
       // arrange integer value (read ATMega 2560 Datashet p.288) figure 26-15
-      //if (sensor > 511 ) sensor -= 1023;
-      //!!! sensor += 20; // Add offset to ground (for bias current)
+      if (sensor > 511 ) sensor -= 1023;
+      //sensor += 2; // Compensate offset of amplifier
 
-      if (sensor < 512 ) 
+      if (sensor >= 0) 
       {
-        if ((buffer[sensor]<65535)&&(sensor>oldValue)) buffer[sensor]++;
+        //if ((buffer[sensor]<65535)&&(sensor>oldValue)) buffer[sensor]++;
+        if ((buffer[sensor]<65535)) buffer[sensor]++;
         oldValue = sensor;
       }
       else
@@ -271,7 +282,8 @@ void loop()
       if (dataFile) 
       {
         dataFile.println(dataString);  // write to SDcard
-        //!!!swSerial.println(dataString);  // print to terminal
+        swSerial.println(dataString);  // print to terminal
+        //Serial.println(dataString);  // print to terminal
         
         digitalWrite(LED_yellow, LOW);  // Blink for Dasa
         delay(10);
@@ -308,8 +320,7 @@ void loop()
         incomingByte = Serial.read();
       }
     }
-
-    /*
+    
     int parse = 0;
     for(int n=0; n<30000; n++)    // Skip first GPRMC
     {
@@ -331,7 +342,6 @@ void loop()
       }
       if (parse==2) break;
     }
-    */
     
     boolean flag = false;
     int messages = 0;
@@ -360,6 +370,7 @@ void loop()
     {
       dataFile.print(dataString);  // write to SDcard
       swSerial.print(dataString);  // print to terminal
+      //Serial.print(dataString);  // print to terminal
       dataFile.close();
     }  
     // if the file isn't open, pop up an error:
