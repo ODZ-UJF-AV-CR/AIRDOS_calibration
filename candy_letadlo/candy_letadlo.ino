@@ -88,14 +88,14 @@ uint16_t count = 0;
 
 void setup()
 {
- // Open serial communications and wait for port to open:
+  // Open serial communications and wait for port to open:
   Serial.begin(9600);
-   while (!Serial) 
-   {
-    ; // wait for serial port to connect. Needed for Leonardo only
-   }
+  while (!Serial) 
+  {
+  ; // wait for serial port to connect. Needed for Leonardo only?
+  }
 
-  swSerial.begin(9600);
+  swSerial.begin(115200);
   //mySerial.println("#Cvak...");
 
   swSerial.print("#Initializing SD card...");
@@ -148,8 +148,6 @@ void setup()
   digitalWrite(RELE_OFF, LOW);
 }
 
-int oldValue = 0;  // Variable for filtering death time double detection
-
 #define MEASUREMENTS  25   // cca 5 minutes of radiation measurement
 
 void loop()
@@ -157,26 +155,13 @@ void loop()
   for(int x=0; x<MEASUREMENTS; x++)  
   {
     uint8_t lo, hi;
-    uint16_t sensor;
+    uint16_t u_sensor;
+    //int16_t s_sensor;
     uint16_t buffer[1024];
     
     for(int n=0; n<1024; n++)
     {
       buffer[n]=0;
-    }
-    
-    if (x == (MEASUREMENTS-2))    // cca 26 s delay for GPS fix (cca 2 measurements)
-    {
-      digitalWrite(RELE_OFF, LOW);  // Rele switch ON
-      digitalWrite(RELE_ON, HIGH);  
-      delay(200);
-      digitalWrite(RELE_ON, LOW);
-      
-      delay(1000);  // Start GPS 
-      
-      // airborne <2g; 40 configuration bytes
-      const char cmd[44]={0xB5, 0x62 ,0x06 ,0x24 ,0x24 ,0x00 ,0xFF ,0xFF ,0x07 ,0x03 ,0x00 ,0x00 ,0x00 ,0x00 ,0x10 ,0x27 , 0x00 ,0x00 ,0x05 ,0x00 ,0xFA ,0x00 ,0xFA ,0x00 ,0x64 ,0x00 ,0x2C ,0x01 ,0x00 ,0x3C ,0x00 ,0x00 , 0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x53 ,0x0A};
-      for (int n=0;n<44;n++) Serial.write(cmd[n]); 
     }
     
     digitalWrite(RESET, HIGH);   // Reset peak detector
@@ -190,14 +175,22 @@ void loop()
     digitalWrite(RESET, HIGH);   // Reset peak detector
     digitalWrite(RESET, HIGH);   // Reset peak detector
     for (int i=0; i<20; i++) {digitalWrite(RESET, LOW);} // compensate first data aquisition cca 100 us
-    for(int n=0; n<18200; n++) // cca 12 s
+
+    uint16_t maximum = 0;  
+    uint16_t supress = 0;      
+
+    for(uint16_t n=0; n<65535; n++) // cca 12 s
     {
-      for (int i=0; i<100; i++) {digitalWrite(RESET, LOW);} // integration cca 500 us
+      for (int i=0; i<10; i++) {digitalWrite(RESET, LOW);} // whole integration cca 200 us
       // start the conversion
-      sbi(ADCSRA, ADSC);           // Sample/Hold
+      sbi(ADCSRA, ADSC);          // Sample/Hold
+
+      digitalWrite(RESET, LOW);   // delay for sample/hold
       digitalWrite(RESET, LOW); 
-      digitalWrite(RESET, HIGH);   // Reset peak detector (start next measurement)
       digitalWrite(RESET, LOW); 
+      digitalWrite(RESET, HIGH);  // Reset peak detector (start next measurement)
+      digitalWrite(RESET, LOW); 
+
       // ADSC is cleared when the conversion finishes
       while (bit_is_set(ADCSRA, ADSC));  // conversion cca 100 us
       
@@ -209,40 +202,39 @@ void loop()
       hi = ADCH;
 
       // combine the two bytes
-      sensor = (hi << 8) | lo;
-    
-      // arrange integer value (read ATMega 2560 Datashet p.288) figure 26-15
-      if (sensor > 511 ) sensor -= 1023;
-      sensor += 2; // Compensate offset of amplifier
+      u_sensor = (hi << 8) | lo;
 
-      if (sensor >= 0) 
+      // manage negative values
+      if (u_sensor <= 511 ) {u_sensor += 512;} else {u_sensor -= 512;}
+      
+      if (u_sensor > maximum) // suppress double detection for long pulses
       {
-        if ((buffer[sensor]<65535)&&(sensor>oldValue)) buffer[sensor]++;
-        oldValue = sensor;
+        maximum = u_sensor;
+        supress++;
       }
       else
       {
-        oldValue = 0; // 0 means noise
+        buffer[maximum]++;
+        maximum = 0;
       }
-      // Omite negative values, protect owerflow and suppress low slow faling edge
     }
     
   
     {
       // make a string for assembling the data to log:
       String dataString = "$CANDY,";
-      String toMonitor = "$CANDY,";
   
-      dataString += String(count); 
+      dataString += String(count++); 
       dataString += ",";
     
-      for(int n=1; n<(512); n++)  // There is only noise in channel 0
+      //for(int n=1; n<(512); n++)  // There is only noise in channel 0
+      for(int n=0; n<(1024); n++)  // There is only noise in channel 0
       {
         dataString += String(buffer[n]); 
         dataString += ",";
       }
 
-      #define NOISE 4
+      #define NOISE 512 + 2
       #define BACKGROUND 7
         
       int loDose = 0;
@@ -252,15 +244,19 @@ void loop()
       }
     
       int hiDose=0;
-      for(int n=(NOISE+BACKGROUND); n<512 ; n++)
+      for(int n=(NOISE+BACKGROUND); n<1024 ; n++)
       {
         hiDose += buffer[n];
       }
       
-      toMonitor += String(count++) + "," + String(loDose+hiDose) + "," + String(loDose) + "," + String(hiDose) + "*";
-      swSerial.println(toMonitor);
-      
-      dataString += String(loDose+hiDose) + "," + String(loDose) + "," + String(hiDose);
+      int noisenoise=0;
+      for(int n=0; n<NOISE ; n++)
+      {
+        noisenoise += buffer[n];
+      }
+
+      int dose = loDose+hiDose;
+      dataString += String(dose) + "," + String(loDose) + "," + String(hiDose) + "," + String(noisenoise) + "," + String(supress) + "," + String(dose+noisenoise+supress);
     
       // open the file. note that only one file can be open at a time,
       // so you have to close this one before opening another.
@@ -270,14 +266,14 @@ void loop()
       if (dataFile) 
       {
         dataFile.println(dataString);  // write to SDcard
-        //!!!swSerial.println(dataString);  // print to terminal
+        swSerial.println(dataString);  // print to terminal
         
         digitalWrite(LED_yellow, LOW);  // Blink for Dasa
         delay(10);
         digitalWrite(LED_yellow, HIGH);  
-        if (hiDose >0)
+        if (hiDose > 0)
         {
-          delay(100);
+          delay(150);
           digitalWrite(LED_yellow, LOW);  // Blink for Dasa + zaric
           delay(10);
           digitalWrite(LED_yellow, HIGH);  
@@ -291,13 +287,25 @@ void loop()
         swSerial.println("#error opening datalog.txt");
       }
     }  
-  }
+  }    
   
   {
+    digitalWrite(RELE_OFF, LOW);  // Rele switch ON
+    digitalWrite(RELE_ON, HIGH);  
+    delay(200);
+    digitalWrite(RELE_ON, LOW);
+    
+    delay(1000);  // Start GPS 
+    
+    // airborne <2g; 40 configuration bytes
+    const char cmd[44]={0xB5, 0x62 ,0x06 ,0x24 ,0x24 ,0x00 ,0xFF ,0xFF ,0x07 ,0x03 ,0x00 ,0x00 ,0x00 ,0x00 ,0x10 ,0x27 , 0x00 ,0x00 ,0x05 ,0x00 ,0xFA ,0x00 ,0xFA ,0x00 ,0x64 ,0x00 ,0x2C ,0x01 ,0x00 ,0x3C ,0x00 ,0x00 , 0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x53 ,0x0A};
+    for (int n=0;n<44;n++) Serial.write(cmd[n]); 
+
+    delay(26000);  // Waiting for GPS fix
+      
     // make a string for assembling the NMEA to log:
     String dataString = "";
     char incomingByte; 
-    
     
     for(int n=0; n<30000; n++)    // flush USART buffer
     {
