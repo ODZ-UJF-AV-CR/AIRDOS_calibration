@@ -207,6 +207,9 @@ void loop()
       // manage negative values
       if (u_sensor <= 511 ) {u_sensor += 512;} else {u_sensor -= 512;}
       
+
+      //buffer[u_sensor]++;
+            
       if (u_sensor > maximum) // suppress double detection for long pulses
       {
         maximum = u_sensor;
@@ -214,10 +217,13 @@ void loop()
       }
       else
       {
+        digitalWrite(LED_yellow, LOW);  // Blink for debug
+        digitalWrite(LED_yellow, HIGH);  
+
         buffer[maximum]++;
         maximum = 0;
       }
-    }
+}
     
   
     {
