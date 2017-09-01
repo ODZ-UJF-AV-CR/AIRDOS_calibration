@@ -185,14 +185,17 @@ void loop()
       // start the conversion
       sbi(ADCSRA, ADSC);          // Sample/Hold
 
-      digitalWrite(RESET, LOW);   // delay for sample/hold
-      digitalWrite(RESET, LOW); 
-      digitalWrite(RESET, LOW); 
-      digitalWrite(RESET, HIGH);  // Reset peak detector (start next measurement)
-      digitalWrite(RESET, LOW); 
+      //digitalWrite(RESET, LOW);   // delay for sample/hold
+      //digitalWrite(RESET, LOW); 
+      //digitalWrite(RESET, LOW); 
+      //digitalWrite(RESET, HIGH);  // Reset peak detector (start next measurement)
+      //digitalWrite(RESET, LOW); 
 
       // ADSC is cleared when the conversion finishes
       while (bit_is_set(ADCSRA, ADSC));  // conversion cca 100 us
+
+      digitalWrite(RESET, HIGH);  // Reset peak detector (start next measurement)
+      digitalWrite(RESET, LOW); 
       
       // we have to read ADCL first; doing so locks both ADCL
       // and ADCH until ADCH is read.  reading ADCL second would
@@ -202,13 +205,15 @@ void loop()
       hi = ADCH;
 
       // combine the two bytes
-      u_sensor = (hi << 8) | lo;
+      u_sensor = (hi << 7) | (lo >> 1);
 
       // manage negative values
-      if (u_sensor <= 511 ) {u_sensor += 512;} else {u_sensor -= 512;}
+      //if (u_sensor <= 511 ) {u_sensor += 512;} else {u_sensor -= 512;}
+      if (u_sensor <= 255 ) {u_sensor += 256;} else {u_sensor -= 256;}
       
 
       //buffer[u_sensor]++;
+
             
       if (u_sensor > maximum) // suppress double detection for long pulses
       {
@@ -234,7 +239,7 @@ void loop()
       dataString += ",";
     
       //for(int n=1; n<(512); n++)  // There is only noise in channel 0
-      for(int n=0; n<(1024); n++)  // There is only noise in channel 0
+      for(int n=0; n<(1024); n++)  
       {
         dataString += String(buffer[n]); 
         dataString += ",";
@@ -306,8 +311,9 @@ void loop()
     // airborne <2g; 40 configuration bytes
     const char cmd[44]={0xB5, 0x62 ,0x06 ,0x24 ,0x24 ,0x00 ,0xFF ,0xFF ,0x07 ,0x03 ,0x00 ,0x00 ,0x00 ,0x00 ,0x10 ,0x27 , 0x00 ,0x00 ,0x05 ,0x00 ,0xFA ,0x00 ,0xFA ,0x00 ,0x64 ,0x00 ,0x2C ,0x01 ,0x00 ,0x3C ,0x00 ,0x00 , 0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x53 ,0x0A};
     for (int n=0;n<44;n++) Serial.write(cmd[n]); 
-
-    delay(26000);  // Waiting for GPS fix
+    
+    //delay(26000);  // Waiting for GPS fix
+    delay(1000);  // Waiting for GPS fix
       
     // make a string for assembling the NMEA to log:
     String dataString = "";
