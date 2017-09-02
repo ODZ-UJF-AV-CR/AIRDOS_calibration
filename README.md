@@ -1,2 +1,2 @@
 # AIRDOS
-Custom firmware for AIRDOS dosimeter
+Custom firmware for AIRDOS dosimeter for calibration purposes
