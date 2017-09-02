@@ -80,6 +80,8 @@ TX1/INT1 (D 11) PD3 17|        |24 PC2 (D 18) TCK
 #define RELE_OFF    12    // PD4
 #define LED_yellow  23    // PC7
 
+#define CHANNELS 512 // number of channels in buffer for histogram, including negative numbers
+
 SoftwareSerial swSerial(18, 19); // RX, TX
 
 const int chipSelect = 4;
@@ -157,9 +159,9 @@ void loop()
     uint8_t lo, hi;
     uint16_t u_sensor;
     //int16_t s_sensor;
-    uint16_t buffer[1024];
+    uint16_t buffer[CHANNELS];
     
-    for(int n=0; n<1024; n++)
+    for(int n=0; n<CHANNELS; n++)
     {
       buffer[n]=0;
     }
@@ -181,21 +183,35 @@ void loop()
 
     for(uint16_t n=0; n<65535; n++) // cca 12 s
     {
-      for (int i=0; i<10; i++) {digitalWrite(RESET, LOW);} // whole integration cca 200 us
+      for (int i=0; i<15; i++) {digitalWrite(RESET, LOW);} // whole integration cca 200 us
+
       // start the conversion
       sbi(ADCSRA, ADSC);          // Sample/Hold
 
-      //digitalWrite(RESET, LOW);   // delay for sample/hold
-      //digitalWrite(RESET, LOW); 
-      //digitalWrite(RESET, LOW); 
-      //digitalWrite(RESET, HIGH);  // Reset peak detector (start next measurement)
-      //digitalWrite(RESET, LOW); 
+      // delay for hold
+      __asm__("nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t"); 
+      __asm__("nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t"); 
+      __asm__("nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t"); 
+      __asm__("nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t"); 
+      __asm__("nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t"); 
+      __asm__("nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t"); 
+      __asm__("nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t"); 
+      __asm__("nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t"); 
+      __asm__("nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t"); 
+      __asm__("nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t"); 
+      __asm__("nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t"); 
+      __asm__("nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t"); 
+      __asm__("nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t"); 
+      __asm__("nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t"); 
+      __asm__("nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t nop\n\t"); 
+      digitalWrite(RESET, HIGH);  // Reset peak detector (start next measurement)
+      digitalWrite(RESET, LOW); 
 
       // ADSC is cleared when the conversion finishes
       while (bit_is_set(ADCSRA, ADSC));  // conversion cca 100 us
 
-      digitalWrite(RESET, HIGH);  // Reset peak detector (start next measurement)
-      digitalWrite(RESET, LOW); 
+      //  digitalWrite(LED_yellow, LOW);  // Blink for debug
+      //  digitalWrite(LED_yellow, HIGH);  
       
       // we have to read ADCL first; doing so locks both ADCL
       // and ADCH until ADCH is read.  reading ADCL second would
@@ -209,7 +225,7 @@ void loop()
 
       // manage negative values
       //if (u_sensor <= 511 ) {u_sensor += 512;} else {u_sensor -= 512;}
-      if (u_sensor <= 255 ) {u_sensor += 256;} else {u_sensor -= 256;}
+      if (u_sensor <= (CHANNELS/2)-1 ) {u_sensor += (CHANNELS/2);} else {u_sensor -= (CHANNELS/2);}
       
 
       //buffer[u_sensor]++;
@@ -222,9 +238,6 @@ void loop()
       }
       else
       {
-        digitalWrite(LED_yellow, LOW);  // Blink for debug
-        digitalWrite(LED_yellow, HIGH);  
-
         buffer[maximum]++;
         maximum = 0;
       }
@@ -238,14 +251,13 @@ void loop()
       dataString += String(count++); 
       dataString += ",";
     
-      //for(int n=1; n<(512); n++)  // There is only noise in channel 0
-      for(int n=0; n<(1024); n++)  
+      for(int n=0; n<CHANNELS; n++)  
       {
         dataString += String(buffer[n]); 
         dataString += ",";
       }
 
-      #define NOISE 512 + 2
+      #define NOISE (CHANNELS/2) + 2
       #define BACKGROUND 7
         
       int loDose = 0;
@@ -255,7 +267,7 @@ void loop()
       }
     
       int hiDose=0;
-      for(int n=(NOISE+BACKGROUND); n<1024 ; n++)
+      for(int n=(NOISE+BACKGROUND); n<CHANNELS ; n++)
       {
         hiDose += buffer[n];
       }
@@ -312,8 +324,7 @@ void loop()
     const char cmd[44]={0xB5, 0x62 ,0x06 ,0x24 ,0x24 ,0x00 ,0xFF ,0xFF ,0x07 ,0x03 ,0x00 ,0x00 ,0x00 ,0x00 ,0x10 ,0x27 , 0x00 ,0x00 ,0x05 ,0x00 ,0xFA ,0x00 ,0xFA ,0x00 ,0x64 ,0x00 ,0x2C ,0x01 ,0x00 ,0x3C ,0x00 ,0x00 , 0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x53 ,0x0A};
     for (int n=0;n<44;n++) Serial.write(cmd[n]); 
     
-    //delay(26000);  // Waiting for GPS fix
-    delay(1000);  // Waiting for GPS fix
+    delay(26000);  // Waiting for GPS fix
       
     // make a string for assembling the NMEA to log:
     String dataString = "";
